@@ -622,7 +622,7 @@
             fans.forEach(function (f) { f.rotation.y += dt * 4; });
             anemometers.forEach(function (a) { a.rotation.y += dt * 3; });
             if (rgbMats.length) {
-                var hue = (now / 6000) % 1, c = new THREE.Color().setHSL(hue, 0.85, 0.55).convertSRGBToLinear();
+                var hue = (now / 2500) % 1, c = new THREE.Color().setHSL(hue, 0.85, 0.55).convertSRGBToLinear();
                 rgbMats.forEach(function (m) { m.emissive.copy(c); });
             }
             updateFlashes(now);
