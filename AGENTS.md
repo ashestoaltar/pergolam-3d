@@ -34,6 +34,10 @@ Do not use plan-left/plan-right for Left/Right on U3/U4.
 
 Hangs under the louver nearest mid-projection. Even louver count: pick the one toward C (−Z), `floor((n-1)/2)`. That blade stays closed (0°) while the others open. One bar per bay, same louver index.
 
+## Upright LEDs
+
+Two strips per post, on the interior faces: toward the neighbor along Width and toward the neighbor along Projection (U1 → U2 and U1 → U4). Use the home-corner signs, not the offset position.
+
 If Iso looks mirrored again, the coordinates drifted — fix placement, not the camera.
 
 ## Serve

@@ -246,6 +246,8 @@
             };
             var uprights = new THREE.Group(); uprights.name = 'uprights';
             var uprightPos = {};
+            var uprightLedMat = (cfg.Light_Upright !== 'None' && type !== 'Between_Wall') ? ledMat(cfg.Light_Upright) : null;
+            if (uprightLedMat) reg('lights', uprightLedMat);
             [1, 2, 3, 4].forEach(function (n) {
                 if (!d['nUpright' + n + 'Visible']) return;
                 var c = corners[n], px = c.x, pz = c.z;
@@ -284,10 +286,11 @@
                     : [0, end]; // Out
                 var drainMat = makeMat('#2563EB', { metalness: 0.15, roughness: 0.45 }); reg('drains', drainMat);
                 uprights.add(drainArrow(px, pz, v[0], v[1], drainMat));
-                // upright LED strip on the inward face
-                if (cfg.Light_Upright !== 'None' && type !== 'Between_Wall') {
-                    var lm = ledMat(cfg.Light_Upright); reg('lights', lm);
-                    uprights.add(box(0.02, H * 0.86, 0.035, lm, px - Math.sign(px) * (POST / 2 + 0.008), H * 0.5, pz, 'lights'));
+                // Upright LEDs on the two interior faces (U1: toward U2 and toward U4)
+                if (uprightLedMat) {
+                    var ix = Math.sign(c.x) || 1, iz = Math.sign(c.z) || 1, lo = POST / 2 + 0.008;
+                    uprights.add(box(0.02, H * 0.86, 0.035, uprightLedMat, px - ix * lo, H * 0.5, pz, 'lights'));
+                    uprights.add(box(0.035, H * 0.86, 0.02, uprightLedMat, px, H * 0.5, pz - iz * lo, 'lights'));
                 }
                 if (showLabels) { var lb = makeLabel('U' + n, { height: 0.22, bg: 'rgba(31,41,55,0.9)' }); lb.position.set(px, -0.12, pz); labelsGroup.add(lb); }
             });
