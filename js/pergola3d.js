@@ -281,9 +281,17 @@
                     });
                 }
                 uprights.add(plates);
-                // Drain direction at the base (Out = away from the structure along projection)
+                // Drain direction is from the person facing that end of the pergola:
+                //   C-end (U1, U2): stand outside C looking toward A
+                //   A-end (U3, U4): stand outside A looking toward C
+                // Out / In = away from / into the structure along projection.
+                // Left / Right = that observer's left / right (so they swap on the A end).
                 var dir = cfg.Drain_Style === 'NS' ? cfg['DrainDirection' + n] : 'Out';
-                var v = dir === 'In' ? [0, -Math.sign(pz)] : dir === 'Left' ? [1, 0] : dir === 'Right' ? [-1, 0] : [0, Math.sign(pz)];
+                var end = Math.sign(pz) || 1; // −1 = C end, +1 = A end
+                var v = dir === 'In' ? [0, -end]
+                    : dir === 'Left' ? [-end, 0]
+                    : dir === 'Right' ? [end, 0]
+                    : [0, end]; // Out
                 var drainMat = makeMat('#2563EB', { metalness: 0.15, roughness: 0.45 }); reg('drains', drainMat);
                 uprights.add(drainArrow(px, pz, v[0], v[1], drainMat));
                 // upright LED strip on the inward face

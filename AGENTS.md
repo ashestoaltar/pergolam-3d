@@ -21,6 +21,15 @@ A normal Three.js camera looking from C toward A, and Top with `up = +Z`, puts *
 
 Helpers in `js/pergola3d.js`: `xB = -W/2`, `xD = +W/2`. View angles: iso `[145, 30]`, front `[180, 0]`, side `[270, 0]`.
 
+## Drain arrows (relative to the facing end)
+
+Blue ground arrows. Not pipes. Direction is from the person looking at that end:
+
+- **C-end (U1, U2):** stand outside C. Left = D, Right = B, Out = toward C, In = toward A.
+- **A-end (U3, U4):** stand outside A. Left = B, Right = D, Out = toward A, In = toward C.
+
+Do not use plan-left/plan-right for Left/Right on U3/U4.
+
 If Iso looks mirrored again, the coordinates drifted — fix placement, not the camera.
 
 ## Serve
