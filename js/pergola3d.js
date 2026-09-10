@@ -257,16 +257,6 @@
                 }
                 uprightPos[n] = { x: px, z: pz };
                 uprights.add(box(POST, H, POST, frameMat, px, H / 2, pz, 'uprights'));
-                if (offset) {   // offset weldment: arm from post top back to the frame corner, under the gutter
-                    var armMat = frameMat;
-                    if (axis === 'Width') {
-                        var len = Math.abs(c.x - px) + POST;
-                        uprights.add(box(len, 0.14, POST, armMat, (c.x + px) / 2 + Math.sign(c.x) * POST / 2, H - 0.07, pz, 'uprights'));
-                    } else {
-                        var lenZ = Math.abs(c.z - pz) + POST;
-                        uprights.add(box(POST, 0.14, lenZ, armMat, px, H - 0.07, (c.z + pz) / 2 + Math.sign(c.z) * POST / 2, 'uprights'));
-                    }
-                }
                 // base plate
                 var bpType = cfg.BasePlate_Style === 'NS' ? cfg['BasePlateType' + n] : 'Central';
                 var plates = new THREE.Group();
