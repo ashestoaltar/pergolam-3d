@@ -317,12 +317,16 @@
             }
             var louverLedMat = cfg.Light_Louver !== 'None' ? ledMat(cfg.Light_Louver) : null;
             if (louverLedMat) reg('lights', louverLedMat);
+            // Fan bar hangs from the louver nearest mid-projection; even count prefers C (−Z).
+            var fanIdx = cfg.FanBar ? Math.floor((n - 1) / 2) : -1;
+            var fanZ = fanIdx >= 0 ? z0 + fanIdx * LOUVER_PITCH : 0;
             for (var b = 0; b < numBay; b++) {
                 var bayCx = numBay === 1 ? 0 : (b === 0 ? bayW / 2 : -bayW / 2);
                 var len = bayW - LOUVER_END_GAP;
                 for (var i = 0; i < n; i++) {
                     var pivot = new THREE.Group();
                     pivot.position.set(bayCx, pivotY, z0 + i * LOUVER_PITCH);
+                    pivot.userData.fanLocked = (i === fanIdx);
                     var blade = box(len, LOUVER_THICK, LOUVER_BLADE, louverMat, 0, 0, 0, 'louvers');
                     pivot.add(blade);
                     if (louverLedMat && lightIdx[i]) {
@@ -375,19 +379,20 @@
             var accentMat = makeMat('#2563EB', { metalness: 0.2, roughness: 0.5 }); reg('addons', accentMat);
             function addLabel(text, x, y, z) { if (!showLabels) return; var l = makeLabel(text, { height: 0.22 }); l.position.set(x, y, z); labelsGroup.add(l); }
             if (cfg.FanBar) {
+                var barH = 0.05;
+                var by = pivotY - LOUVER_THICK / 2 - 0.025 - barH / 2;
                 for (var fb = 0; fb < numBay; fb++) {
                     var cx = numBay === 1 ? 0 : (fb === 0 ? bayW / 2 : -bayW / 2);
-                    var by = topY - 0.36;
-                    addons.add(box(bayW - 2 * GUT_W + 0.02, 0.05, 0.08, addonMat, cx, by, 0, 'addons'));
-                    var fan = new THREE.Group(); fan.position.set(cx, by - 0.30, 0);
-                    addons.add(cyl(0.014, 0.014, 0.26, addonMat, cx, by - 0.15, 0, 'addons', 10));
+                    addons.add(box(bayW - 2 * GUT_W + 0.02, barH, 0.08, addonMat, cx, by, fanZ, 'addons'));
+                    var fan = new THREE.Group(); fan.position.set(cx, by - 0.30, fanZ);
+                    addons.add(cyl(0.014, 0.014, 0.26, addonMat, cx, by - 0.15, fanZ, 'addons', 10));
                     fan.add(cyl(0.085, 0.085, 0.07, addonMat, 0, 0, 0, 'addons'));
                     for (var bl = 0; bl < 3; bl++) {
                         var blade = box(0.52, 0.008, 0.11, addonMat, 0.30, -0.02, 0, 'addons');
                         var holder = new THREE.Group(); holder.rotation.y = bl * Math.PI * 2 / 3; holder.add(blade); fan.add(holder);
                     }
                     addons.add(fan); fans.push(fan);
-                    addLabel('Fan Bar', cx, by - 0.62, 0);
+                    addLabel('Fan Bar', cx, by - 0.62, fanZ);
                 }
             }
             if (cfg.Sensor_Wind) {
@@ -485,7 +490,9 @@
         // ── Louvers ─────────────────────────────────────────────────
         function applyLouverAngle(deg) {
             var r = THREE.MathUtils.degToRad(deg);
-            for (var i = 0; i < louverPivots.length; i++) louverPivots[i].rotation.x = -r;
+            for (var i = 0; i < louverPivots.length; i++) {
+                louverPivots[i].rotation.x = louverPivots[i].userData.fanLocked ? 0 : -r;
+            }
         }
         function setLouverAngle(deg, immediate) {
             louverTarget = Math.max(0, Math.min(110, Number(deg) || 0));

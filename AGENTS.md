@@ -30,6 +30,10 @@ Blue ground arrows. Not pipes. Direction is from the person looking at that end:
 
 Do not use plan-left/plan-right for Left/Right on U3/U4.
 
+## Fan bar
+
+Hangs under the louver nearest mid-projection. Even louver count: pick the one toward C (−Z), `floor((n-1)/2)`. That blade stays closed (0°) while the others open. One bar per bay, same louver index.
+
 If Iso looks mirrored again, the coordinates drifted — fix placement, not the camera.
 
 ## Serve
