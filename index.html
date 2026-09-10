@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pergolam 3D Configurator</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%232563EB'/%3E%3Cpath d='M6 11h20M8 11v14M24 11v14M6 15h20M6 19h20' stroke='%23fff' stroke-width='2.2' stroke-linecap='round'/%3E%3C/svg%3E" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    <!-- "?v=202609091046" is replaced by a timestamp when publishing (deploy\Publish-ToFolder.ps1) so browsers never keep an old build -->
+    <link rel="stylesheet" href="css/site.css?v=202609091900" />
+    <!-- Three.js r128 (UMD build + OrbitControls). To host locally, copy both files into lib/three/ and point these tags there. -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+
+    <!-- ═══════════════ TOP BAR ═══════════════ -->
+    <header class="topbar">
+        <button type="button" class="btn icon" id="btn-sidebar" title="Show / hide configurator panel"><i class="fa-solid fa-bars"></i></button>
+        <div class="brand"><span class="logo"><i class="fa-solid fa-cube"></i></span> Pergolam 3D <small>Anchor Pergolas · CPQ preview</small></div>
+        <span class="pill blue" id="source-pill">Source: Demo panel</span>
+        <span class="pill" id="embed-pill">Standalone</span>
+        <div class="spacer"></div>
+        <button type="button" class="btn" id="btn-reset" title="Restore default values"><i class="fa-solid fa-rotate-left"></i> Reset</button>
+        <button type="button" class="btn primary" id="btn-params"><i class="fa-solid fa-code"></i> Parameters</button>
+    </header>
+
+    <div class="main">
+
+        <!-- ═══════════════ CONFIGURATOR PANEL (mirrors the CPQ pages) ═══════════════ -->
+        <aside class="sidebar">
+            <p class="sidebar-intro">These controls mirror the pages of the CPQ ruleset <strong>Anchor.PERGOLAS_Pergolam</strong>. Change any value and the 3D model updates. In production the values arrive from CPQ instead of this panel.</p>
+            <div id="panel"></div>
+        </aside>
+
+        <!-- ═══════════════ 3D STAGE ═══════════════ -->
+        <section class="stage">
+            <div id="viewport" class="viewport"></div>
+
+            <div class="stage-toolbar">
+                <div class="tool-group">
+                    <button type="button" class="tool-btn" data-view="iso" title="Isometric view"><i class="fa-solid fa-cube"></i> Iso</button>
+                    <button type="button" class="tool-btn" data-view="front" title="Front view (side C)"><i class="fa-solid fa-square"></i> Front</button>
+                    <button type="button" class="tool-btn" data-view="side" title="Side view (side B)"><i class="fa-solid fa-square-full"></i> Side</button>
+                    <button type="button" class="tool-btn" data-view="top" title="Plan view"><i class="fa-solid fa-border-all"></i> Top</button>
+                    <button type="button" class="tool-btn" id="btn-fit" title="Fit model in view"><i class="fa-solid fa-expand"></i> Fit</button>
+                </div>
+                <div class="tool-group">
+                    <label class="tool-check"><input type="checkbox" id="chk-dims" checked /> Dimensions</label>
+                    <label class="tool-check"><input type="checkbox" id="chk-labels" checked /> Labels</label>
+                    <button type="button" class="tool-btn" id="btn-shot" title="Save a PNG of the current view"><i class="fa-solid fa-camera"></i> PNG</button>
+                </div>
+            </div>
+
+            <div class="stage-bottom">
+                <div class="louver-ctl">
+                    <span class="ttl"><i class="fa-solid fa-bars-staggered"></i> Louvers</span>
+                    <button type="button" class="btn sm" id="btn-louver-close">Closed</button>
+                    <input type="range" id="louver-angle" min="0" max="110" step="1" value="30" />
+                    <button type="button" class="btn sm" id="btn-louver-open">Open</button>
+                    <span class="val" id="louver-angle-val">30°</span>
+                </div>
+                <div class="help-chip"><i class="fa-solid fa-computer-mouse"></i> Drag to orbit · Wheel to zoom · Right-drag to pan · Click a part to locate it</div>
+            </div>
+        </section>
+
+        <!-- ═══════════════ PARAMETERS DRAWER ═══════════════ -->
+        <aside class="drawer">
+            <div class="drawer-head">
+                <i class="fa-solid fa-code" style="color:var(--ab-primary)"></i>
+                <h3>Parameters the 3D model receives</h3>
+                <button type="button" class="btn icon sm" id="btn-drawer-close"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="drawer-body">
+                <h4>Summary</h4>
+                <ul class="summary" id="summary"></ul>
+
+                <h4>Input — CPQ attribute names</h4>
+                <pre id="json-config"></pre>
+                <div class="actions">
+                    <button type="button" class="btn sm" id="btn-copy-json"><i class="fa-regular fa-copy"></i> Copy JSON</button>
+                    <button type="button" class="btn sm" id="btn-copy-url"><i class="fa-solid fa-link"></i> Copy URL</button>
+                </div>
+
+                <h4>Derived — computed like the ruleset</h4>
+                <pre id="json-derived"></pre>
+
+                <h4>CPQ integration</h4>
+                <p class="muted">The page accepts the same values three ways: <code>?Width_mm=4000&amp;…</code> in the URL, a <code>postMessage</code> from the CPQ host, or this demo panel. Outgoing messages follow the ABPointsUI protocol (<code>externalApplicationInitialized</code>, <code>setScreenOption</code>).</p>
+                <p class="muted" id="cpq-info">screenOptionId: — · order: —</p>
+                <div class="actions">
+                    <button type="button" class="btn sm" id="btn-simulate"><i class="fa-solid fa-satellite-dish"></i> Simulate CPQ message</button>
+                    <button type="button" class="btn sm primary" id="btn-send-cpq"><i class="fa-solid fa-paper-plane"></i> Send to CPQ</button>
+                </div>
+
+                <h4>Diagnostics — messages in / out</h4>
+                <p class="muted">Every message exchanged with the host, kept across reloads. Open this inside CPQ to see what the configurator actually sends.</p>
+                <ul class="msglog" id="msglog"></ul>
+                <div class="actions">
+                    <button type="button" class="btn sm" id="btn-copy-log"><i class="fa-regular fa-copy"></i> Copy log</button>
+                    <button type="button" class="btn sm" id="btn-clear-log"><i class="fa-regular fa-trash-can"></i> Clear</button>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <script src="js/pergola-config.js?v=202609091900"></script>
+    <script src="js/messenger.js?v=202609091900"></script>
+    <script src="js/pergola3d.js?v=202609091900"></script>
+    <script src="js/app.js?v=202609091900"></script>
+</body>
+</html>
