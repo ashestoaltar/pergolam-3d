@@ -38,6 +38,8 @@ Hangs under the louver nearest mid-projection. Even louver count: pick the one t
 
 Two strips per post, on the interior faces: toward the neighbor along Width and toward the neighbor along Projection (U1 → U2 and U1 → U4). Use the home-corner signs, not the offset position.
 
+White = one warm run. RGB = repeating hard R–G–B blocks (~160 mm), no fade, no chase. Same on upright, gutter, and light louvers.
+
 If Iso looks mirrored again, the coordinates drifted — fix placement, not the camera.
 
 ## Serve

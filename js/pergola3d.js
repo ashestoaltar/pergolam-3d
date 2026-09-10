@@ -39,7 +39,8 @@
     var ACCENT = 0x2563eb;
 
     var COLOR_HEX = { WHITE: '#F1F1EE', ANTHRACITE: '#3B3F45', BLACK: '#161719' };
-    var LED_COLORS = { White: '#FFE9B8', RGB: '#7C3AED' };
+    var LED_COLORS = { White: '#FFE9B8' };
+    var RGB_BLOCKS = ['#EF4444', '#22C55E', '#3B82F6']; // hard R-G-B, no fade / no chase
 
     var PART_LABELS = {
         frame: 'Gutter frame', louvers: 'Louvers', uprights: 'Uprights', baseplates: 'Base plates',
@@ -145,7 +146,7 @@
 
         // ── State ───────────────────────────────────────────────────
         var root = null, dimsGroup = null, labelsGroup = null;
-        var louverPivots = [], fans = [], anemometers = [], rgbMats = [];
+        var louverPivots = [], fans = [], anemometers = [];
         var partMats = {};                   // part name → [materials]
         var flashes = {};                    // part name → start time
         var louverTarget = 30, louverCurrent = 30;
@@ -200,7 +201,7 @@
         // ── Build ───────────────────────────────────────────────────
         function build(cfg, d) {
             disposeGroup(root); disposeGroup(dimsGroup); disposeGroup(labelsGroup);
-            louverPivots = []; fans = []; anemometers = []; rgbMats = []; partMats = {};
+            louverPivots = []; fans = []; anemometers = []; partMats = {};
             root = new THREE.Group(); dimsGroup = new THREE.Group(); labelsGroup = new THREE.Group();
             scene.add(root); scene.add(dimsGroup); scene.add(labelsGroup);
 
@@ -246,8 +247,7 @@
             };
             var uprights = new THREE.Group(); uprights.name = 'uprights';
             var uprightPos = {};
-            var uprightLedMat = (cfg.Light_Upright !== 'None' && type !== 'Between_Wall') ? ledMat(cfg.Light_Upright) : null;
-            if (uprightLedMat) reg('lights', uprightLedMat);
+            var uprightLedKit = (cfg.Light_Upright !== 'None' && type !== 'Between_Wall') ? ledKit(cfg.Light_Upright) : null;
             [1, 2, 3, 4].forEach(function (n) {
                 if (!d['nUpright' + n + 'Visible']) return;
                 var c = corners[n], px = c.x, pz = c.z;
@@ -287,10 +287,10 @@
                 var drainMat = makeMat('#2563EB', { metalness: 0.15, roughness: 0.45 }); reg('drains', drainMat);
                 uprights.add(drainArrow(px, pz, v[0], v[1], drainMat));
                 // Upright LEDs on the two interior faces (U1: toward U2 and toward U4)
-                if (uprightLedMat) {
+                if (uprightLedKit) {
                     var ix = Math.sign(c.x) || 1, iz = Math.sign(c.z) || 1, lo = POST / 2 + 0.008;
-                    uprights.add(box(0.02, H * 0.86, 0.035, uprightLedMat, px - ix * lo, H * 0.5, pz, 'lights'));
-                    uprights.add(box(0.035, H * 0.86, 0.02, uprightLedMat, px, H * 0.5, pz - iz * lo, 'lights'));
+                    addLedStrip(uprights, uprightLedKit, 0.02, H * 0.86, 0.035, px - ix * lo, H * 0.5, pz, 'y');
+                    addLedStrip(uprights, uprightLedKit, 0.035, H * 0.86, 0.02, px, H * 0.5, pz - iz * lo, 'y');
                 }
                 if (showLabels) { var lb = makeLabel('U' + n, { height: 0.22, bg: 'rgba(31,41,55,0.9)' }); lb.position.set(px, -0.12, pz); labelsGroup.add(lb); }
             });
@@ -318,8 +318,7 @@
             if (d.LightLouverCount > 0) {
                 for (var k = 0; k < d.LightLouverCount; k++) lightIdx[Math.round((k + 0.5) * n / d.LightLouverCount - 0.5)] = true;
             }
-            var louverLedMat = cfg.Light_Louver !== 'None' ? ledMat(cfg.Light_Louver) : null;
-            if (louverLedMat) reg('lights', louverLedMat);
+            var louverLedKit = cfg.Light_Louver !== 'None' ? ledKit(cfg.Light_Louver) : null;
             // Fan bar hangs from the louver nearest mid-projection; even count prefers C (−Z).
             var fanIdx = cfg.FanBar ? Math.floor((n - 1) / 2) : -1;
             var fanZ = fanIdx >= 0 ? z0 + fanIdx * LOUVER_PITCH : 0;
@@ -332,8 +331,8 @@
                     pivot.userData.fanLocked = (i === fanIdx);
                     var blade = box(len, LOUVER_THICK, LOUVER_BLADE, louverMat, 0, 0, 0, 'louvers');
                     pivot.add(blade);
-                    if (louverLedMat && lightIdx[i]) {
-                        pivot.add(box(len * 0.96, 0.012, 0.05, louverLedMat, 0, -LOUVER_THICK / 2 - 0.006, 0, 'lights'));
+                    if (louverLedKit && lightIdx[i]) {
+                        addLedStrip(pivot, louverLedKit, len * 0.96, 0.012, 0.05, 0, -LOUVER_THICK / 2 - 0.006, 0, 'x');
                     }
                     louvers.add(pivot);
                     louverPivots.push(pivot);
@@ -365,14 +364,17 @@
 
             // ── Gutter LED strips (inner perimeter)
             if (cfg.Light_Gutter !== 'None') {
-                var gl = ledMat(cfg.Light_Gutter); reg('lights', gl);
+                var gutterLedKit = ledKit(cfg.Light_Gutter);
                 var lg = new THREE.Group();
                 var innerW = W - 2 * GUT_W, innerP = P - 2 * GUT_W, ly = H + 0.03;
-                lg.add(box(innerW, 0.012, 0.03, gl, 0, ly, -P / 2 + GUT_W + 0.015, 'lights'));
-                lg.add(box(innerW, 0.012, 0.03, gl, 0, ly, P / 2 - GUT_W - 0.015, 'lights'));
-                lg.add(box(0.03, 0.012, innerP, gl, xB + GUT_W + 0.015, ly, 0, 'lights'));
-                lg.add(box(0.03, 0.012, innerP, gl, xD - GUT_W - 0.015, ly, 0, 'lights'));
-                if (numBay === 2) { lg.add(box(0.03, 0.012, innerP, gl, GUT_W / 2 + 0.015, ly, 0, 'lights')); lg.add(box(0.03, 0.012, innerP, gl, -GUT_W / 2 - 0.015, ly, 0, 'lights')); }
+                addLedStrip(lg, gutterLedKit, innerW, 0.012, 0.03, 0, ly, -P / 2 + GUT_W + 0.015, 'x');
+                addLedStrip(lg, gutterLedKit, innerW, 0.012, 0.03, 0, ly, P / 2 - GUT_W - 0.015, 'x');
+                addLedStrip(lg, gutterLedKit, 0.03, 0.012, innerP, xB + GUT_W + 0.015, ly, 0, 'z');
+                addLedStrip(lg, gutterLedKit, 0.03, 0.012, innerP, xD - GUT_W - 0.015, ly, 0, 'z');
+                if (numBay === 2) {
+                    addLedStrip(lg, gutterLedKit, 0.03, 0.012, innerP, GUT_W / 2 + 0.015, ly, 0, 'z');
+                    addLedStrip(lg, gutterLedKit, 0.03, 0.012, innerP, -GUT_W / 2 - 0.015, ly, 0, 'z');
+                }
                 root.add(lg);
             }
 
@@ -451,11 +453,34 @@
             setLouverAngle(louverTarget, true);
         }
 
-        function ledMat(kind) {
-            var hex = LED_COLORS[kind] || LED_COLORS.White;
-            var m = new THREE.MeshStandardMaterial({ color: srgb('#FFFFFF'), emissive: srgb(hex), emissiveIntensity: 1.6, metalness: 0, roughness: 0.4 });
-            if (kind === 'RGB') rgbMats.push(m);
-            return m;
+        function ledKit(kind) {
+            var hexes = kind === 'RGB' ? RGB_BLOCKS : [LED_COLORS.White];
+            return hexes.map(function (hex) {
+                var m = new THREE.MeshStandardMaterial({
+                    color: srgb('#FFFFFF'), emissive: srgb(hex), emissiveIntensity: 1.7,
+                    metalness: 0, roughness: 0.4
+                });
+                reg('lights', m);
+                return m;
+            });
+        }
+        function addLedStrip(parent, kit, w, h, d, x, y, z, axis) {
+            var long = axis === 'x' ? w : (axis === 'y' ? h : d);
+            var segs = kit.length === 1 ? 1 : Math.max(3, Math.floor(long / 0.16));
+            if (kit.length > 1) {
+                segs -= segs % 3;
+                if (segs < 3) segs = 3;
+            }
+            var step = long / segs;
+            var sw = axis === 'x' ? step : w, sh = axis === 'y' ? step : h, sd = axis === 'z' ? step : d;
+            for (var i = 0; i < segs; i++) {
+                var off = (i + 0.5) * step - long / 2;
+                parent.add(box(sw, sh, sd, kit[i % kit.length],
+                    x + (axis === 'x' ? off : 0),
+                    y + (axis === 'y' ? off : 0),
+                    z + (axis === 'z' ? off : 0),
+                    'lights'));
+            }
         }
 
         function dimLine(a, b, offsetDir, text) {
@@ -621,10 +646,6 @@
             }
             fans.forEach(function (f) { f.rotation.y += dt * 4; });
             anemometers.forEach(function (a) { a.rotation.y += dt * 3; });
-            if (rgbMats.length) {
-                var hue = (now / 2500) % 1, c = new THREE.Color().setHSL(hue, 0.85, 0.55).convertSRGBToLinear();
-                rgbMats.forEach(function (m) { m.emissive.copy(c); });
-            }
             updateFlashes(now);
             controls.update();
             renderer.render(scene, camera);
