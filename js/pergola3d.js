@@ -40,7 +40,7 @@
 
     var COLOR_HEX = { WHITE: '#F1F1EE', ANTHRACITE: '#3B3F45', BLACK: '#161719' };
     var LED_COLORS = { White: '#FFE9B8' };
-    var RGB_BLOCKS = ['#EF4444', '#22C55E', '#3B82F6']; // hard R-G-B, no fade / no chase
+    var RGB_BLOCKS = ['#FF2A2A', '#12E05A', '#2B7BFF']; // hard R-G-B, no fade / no chase
 
     var PART_LABELS = {
         frame: 'Gutter frame', louvers: 'Louvers', uprights: 'Uprights', baseplates: 'Base plates',
@@ -455,10 +455,12 @@
 
         function ledKit(kind) {
             var hexes = kind === 'RGB' ? RGB_BLOCKS : [LED_COLORS.White];
+            var glow = kind === 'RGB' ? 4.8 : 2.4;
             return hexes.map(function (hex) {
+                var col = srgb(hex);
                 var m = new THREE.MeshStandardMaterial({
-                    color: srgb('#FFFFFF'), emissive: srgb(hex), emissiveIntensity: 1.7,
-                    metalness: 0, roughness: 0.4
+                    color: col, emissive: col, emissiveIntensity: glow,
+                    metalness: 0, roughness: 0.35
                 });
                 reg('lights', m);
                 return m;
