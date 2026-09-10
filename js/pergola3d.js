@@ -167,6 +167,23 @@
             m.position.set(x, y, z); m.castShadow = true; m.receiveShadow = true; m.userData.part = part;
             return m;
         }
+        // Ground-plane flow arrow (sales: which way water leaves the upright).
+        function drainArrow(px, pz, vx, vz, mat) {
+            var g = new THREE.Group();
+            var y = 0.035, gap = POST / 2 + 0.03, shaftL = 0.20, headL = 0.11;
+            var dir = new THREE.Vector3(vx, 0, vz).normalize();
+            var q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
+            var shaft = box(0.038, shaftL, 0.038, mat, 0, 0, 0, 'drains');
+            shaft.position.set(px + dir.x * (gap + shaftL / 2), y, pz + dir.z * (gap + shaftL / 2));
+            shaft.quaternion.copy(q);
+            g.add(shaft);
+            var head = new THREE.Mesh(new THREE.ConeGeometry(0.07, headL, 8), mat);
+            head.position.set(px + dir.x * (gap + shaftL + headL / 2 - 0.01), y, pz + dir.z * (gap + shaftL + headL / 2 - 0.01));
+            head.quaternion.copy(q);
+            head.castShadow = true; head.receiveShadow = true; head.userData.part = 'drains';
+            g.add(head);
+            return g;
+        }
 
         function disposeGroup(g) {
             if (!g) return;
@@ -264,18 +281,11 @@
                     });
                 }
                 uprights.add(plates);
-                // drain outlet at the base (Out = away from the structure along projection)
+                // Drain direction at the base (Out = away from the structure along projection)
                 var dir = cfg.Drain_Style === 'NS' ? cfg['DrainDirection' + n] : 'Out';
                 var v = dir === 'In' ? [0, -Math.sign(pz)] : dir === 'Left' ? [1, 0] : dir === 'Right' ? [-1, 0] : [0, Math.sign(pz)];
-                var drainMat = makeMat('#4B4F57', { metalness: 0.6, roughness: 0.4 }); reg('drains', drainMat);
-                var dl = 0.22;
-                var pipe = cyl(0.028, 0.028, dl, drainMat, px + v[0] * (POST / 2 + dl / 2), 0.16, pz + v[1] * (POST / 2 + dl / 2), 'drains', 14);
-                pipe.rotation.z = v[0] !== 0 ? Math.PI / 2 : 0;
-                pipe.rotation.x = v[1] !== 0 ? Math.PI / 2 : 0;
-                uprights.add(pipe);
-                var cap = cyl(0.032, 0.032, 0.05, drainMat, px + v[0] * (POST / 2 + dl - 0.02), 0.16, pz + v[1] * (POST / 2 + dl - 0.02), 'drains', 14);
-                cap.rotation.copy(pipe.rotation);
-                uprights.add(cap);
+                var drainMat = makeMat('#2563EB', { metalness: 0.15, roughness: 0.45 }); reg('drains', drainMat);
+                uprights.add(drainArrow(px, pz, v[0], v[1], drainMat));
                 // upright LED strip on the inward face
                 if (cfg.Light_Upright !== 'None' && type !== 'Between_Wall') {
                     var lm = ledMat(cfg.Light_Upright); reg('lights', lm);
